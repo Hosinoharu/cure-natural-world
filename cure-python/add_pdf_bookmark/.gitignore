@@ -1,0 +1,5 @@
+.venv
+.vscode
+
+# 存放将要处理的 PDF 、生成新的 PDF 的目录
+data
