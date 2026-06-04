@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib import parse
 from dataclasses import dataclass
 import requests
+from curl_cffi import requests as curl_cffi_req
 from lxml import etree
 from time import sleep
 
@@ -74,17 +75,7 @@ def be_good_name(name: str) -> str:
 
 def request_one_page(url: str, referer: str = HOST):
     "请求一个图片浏览页面，并返回 html"
-    headers = {
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "Accept-Language": "en",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "Pragma": "no-cache",
-        "Referer": referer,
-        "Upgrade-Insecure-Requests": "1",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0"
-    }
-    response = SESSTION.get(url, headers=headers)
+    response = SESSTION.get(url)
     response.raise_for_status()
     response.encoding = response.apparent_encoding
     return response.text
@@ -146,8 +137,31 @@ def download_pic(url: str, filename: Path):
     "下载一张图片"
     if filename.exists():
         return
-    r = SESSTION.get(url)
-    r.raise_for_status()
+    
+    # 不能使用 Session？不清楚原因，就这样吧
+    headers = {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "en",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Pragma": "no-cache",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
+        "sec-ch-ua": "\"Chromium\";v=\"148\", \"Microsoft Edge\";v=\"148\", \"Not/A)Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+    }
+    r = curl_cffi_req.get(url, headers=headers)
+    try:
+        r.raise_for_status()
+    except Exception as e:
+        mylog.error("download_pic error:", e)
+        return
+    
     with open(filename, "wb") as f:
         f.write(r.content)
 
@@ -173,7 +187,7 @@ def download_pics(pics: list[PicInfo], save_path: Path):
 def download_one_page(url: str, save_path: Path, max_page: bool = False):
     "下载一页的图片，并保存到指定路径，看是否返回最大页数"
     max_page_count = 0
-    html = request_one_page(url)
+    html = request_one_page(url, HOST)
     if max_page:
         max_page_count = get_max_page_count(html)
         mylog.info(f"Max page count: {max_page_count}")
@@ -216,12 +230,24 @@ if __name__ == "__main__":
     init_cookie()
     SESSTION.headers.update(
         {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0",
-            "Cookie": COOKIE,
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "accept-language": "en,zh-CN;q=0.9,zh;q=0.8,en-US;q=0.7",
+            "priority": "u=0, i",
+            "referer": "https://www.netbian.com/",
+            "sec-ch-ua": "\"Chromium\";v=\"148\", \"Microsoft Edge\";v=\"148\", \"Not/A)Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "document",
+            "sec-fetch-mode": "navigate",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-user": "?1",
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
+            "cookie": COOKIE,
         }
     )
 
     # 主要是下载风景类图片
-    pic_url = "http://www.netbian.com/fengjing/"
+    pic_url = "https://www.netbian.com/fengjing/"
     save_path = Path(__file__).parent / "pics"
     download_pages(pic_url, save_path)
