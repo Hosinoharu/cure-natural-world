@@ -80,9 +80,12 @@
     /** 部分网站可能无法注入 innerHTML，只好这样了 */
     function createHTML(s) {
         if (my_html_policy === undefined) {
-            my_html_policy = window.trustedTypes?.createPolicy("my_html_policy", {
-                createHTML: (s) => s,
-            });
+            my_html_policy = window.trustedTypes?.createPolicy(
+                "my_html_policy",
+                {
+                    createHTML: (s) => s,
+                },
+            );
         }
         return my_html_policy ? my_html_policy.createHTML(s) : s;
     }
@@ -275,7 +278,13 @@
             if (!current_video) {
                 return;
             }
-            if (!enable) {
+            if (
+                !enable ||
+                event.ctrlKey ||
+                event.altKey ||
+                event.shiftKey ||
+                event.metaKey
+            ) {
                 return;
             }
             if (should_skip_elem()) {
@@ -352,7 +361,13 @@
             if (!current_video) {
                 return;
             }
-            if (!enable) {
+            if (
+                !enable ||
+                event.ctrlKey ||
+                event.altKey ||
+                event.shiftKey ||
+                event.metaKey
+            ) {
                 return;
             }
             if (should_skip_elem()) {
@@ -610,7 +625,6 @@
                 }
                 // 其它情况不进行处理
                 else {
-                    ;
                 }
 
                 // 然后绘制矩形框的宽高
