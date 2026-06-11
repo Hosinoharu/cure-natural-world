@@ -79,6 +79,9 @@
 
     /** hook 特定 API 监听 issue 相关的信息 */
     function hook_api() {
+        // hooked
+        if (Response.prototype.json.toString().includes(hooked_method.name)) return;
+
         Response.prototype.json = hooked_method;
     }
 
@@ -114,7 +117,7 @@
                 exist_span.textContent = insert_text;
             } else {
                 const span = document.createElement("span");
-                span.style.className = class_name;
+                span.className = class_name;
                 span.textContent = insert_text;
                 target.append(span);
             }
